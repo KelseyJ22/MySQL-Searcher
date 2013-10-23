@@ -1,0 +1,122 @@
+package assign3;
+
+import javax.swing.table.AbstractTableModel;
+
+import java.awt.*;
+import java.util.*;
+
+public class TableModel extends AbstractTableModel {
+	
+	public Map<Integer, ArrayList<String>> table;
+	public static String[] COLUMN_NAMES = {"Metropolis", "Continent", "Population"};
+	private int rows;
+
+	MetropolisDataModel dataModel;
+
+	/**
+	 * Constructor. Creates the table model by creating an underlying dataModel to 
+	 * perform queries and a HashMap to store data.
+	 */
+	public TableModel() {
+		dataModel = new MetropolisDataModel();
+		//underlying data model
+		table = new HashMap<Integer, ArrayList<String>>();
+		rows = 0;
+	}
+
+	/**
+	 * Calls upon the dataModel object to perform a search of MySQL and updates 
+	 * the data-storing HashMap with the results of the search.
+	 * @param city
+	 * @param continent
+	 * @param population
+	 * @param popFilter
+	 * @param strictness
+	 */
+	public void search(String city, String continent, String population, String popFilter, String strictness){
+		Map<Integer, ArrayList<String> > results = dataModel.search(city, continent, population, popFilter, strictness);
+		//iterates through the results and adds each entry into the table model
+		for(Integer row : results.keySet()){
+			table.put(row, results.get(row));
+			rows++;
+		}
+		fireTableDataChanged();
+	}
+	
+	/**
+	 * Given input data from the GUI, passes it down to mySQL via the dataModel, then
+	 * returns the data in a processable form to add to the table model Map
+	 * @param city
+	 * @param continent
+	 * @param population
+	 */
+	public void add(String city, String continent, String population){
+		Map<Integer, ArrayList<String>> updated = dataModel.add(city, continent, population);
+		for(Integer row : updated.keySet()){
+			//resets the entire view to be only the newly added element
+			table.put(row, updated.get(row));
+			//reset the row count to be one, since all else aren't present
+			rows = 1;
+		}
+		fireTableDataChanged();
+	}
+	
+	/**
+	 * Given data and a place to put it, either replaces the data stored there or 
+	 * @param info
+	 * @param row
+	 * @param col
+	 */
+	private void update(String info, int row, int col){
+		Integer curr = new Integer(row);
+		table.get(row).add(curr, info);
+	}
+	
+	/**
+	 * Returns the number of columns in the table -- three.
+	 */
+	@Override
+	public int getColumnCount() {
+		//static
+		return COLUMN_NAMES.length;
+	}
+	
+	/**
+	 * Returns the number of rows in the table -- the number of entries in the Map.
+	 */
+	@Override
+	public int getRowCount() {
+		return rows;
+	}
+	
+	/**
+	 * Returns the value stored at a given coordinate point.
+	 */
+	@Override
+	public Object getValueAt(int row, int col) {
+		return table.get(row).get(col);
+	}
+	
+	/**
+	 * Returns the name of a given column, as stored in a static array.
+	 */
+	@Override
+	public String getColumnName(int col){
+		return COLUMN_NAMES[col];
+	}
+	
+	/**
+	 * Sets the value at a given point by calling update() and then
+	 * telling the JTable above to update itself.
+	 */
+	@Override
+	public void setValueAt(Object value, int row, int col) {
+		//calls the update() function as a helper
+		update((String)value, row, col);
+	    fireTableCellUpdated(row, col);
+	}
+	
+	public void disconnect(){
+		dataModel.disconnect();
+	}
+}
