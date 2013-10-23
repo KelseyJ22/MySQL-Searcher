@@ -1,0 +1,213 @@
+package assign3;
+
+import javax.swing.*;
+import javax.swing.event.TableModelEvent;
+import javax.swing.event.TableModelListener;
+
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
+
+public class Frame extends JFrame implements WindowListener, TableModelListener {
+
+	private JTextField metSearch;
+	private JTextField contSearch;
+	private JTextField popSearch;
+	private JComboBox popFilter;
+	private JComboBox matchDegree;
+	private TableModel model;
+	
+	/**
+	 * Constructor. Assembles a new GUI frame containing the requisite search
+	 * filters and bars, relying on various helper methods to create smaller
+	 * boxes and panels.
+	 */
+	public Frame() {
+		//initializes the table
+		model = new TableModel();
+		setLayout(new BorderLayout());
+		
+		//search boxes
+		metSearch = new JTextField();
+		contSearch = new JTextField();
+		popSearch = new JTextField();
+		
+		//creates the dropdown choices
+		String[] popChoices = {"Larger", "Smaller or Equal"};
+		String[] matchChoices = {"Exact", "Partial"};
+		popFilter = new JComboBox(popChoices);
+		popFilter.setAlignmentX(Component.CENTER_ALIGNMENT);
+		matchDegree = new JComboBox(matchChoices);
+		matchDegree.setAlignmentX(Component.CENTER_ALIGNMENT);
+		matchDegree.getSelectedItem();
+		
+		//adds the JTable to the panel
+		JTable data = new JTable(model);
+		JScrollPane scrollPane = new JScrollPane(data);
+		add(scrollPane, BorderLayout.CENTER);
+		data.getModel().addTableModelListener(new TableModelListener() {
+		      public void tableChanged(TableModelEvent e) {
+		          System.out.println(e);
+		      }
+		    });
+	
+		//decomposes the view for the top and right side of the layout
+		Box top = buildTop();
+        top.setVisible(true);
+        add(top, BorderLayout.NORTH);
+                      
+        Box right = buildRight();
+        right.setVisible(true);
+        add(right, BorderLayout.EAST);
+        
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		pack();
+		setVisible(true);
+	}
+	
+	/**
+	 * Assembles the panel to appear to the right of the JTable component.
+	 * This includes the filters and search/add buttons.
+	 * @return
+	 */
+	private Box buildRight(){
+		JButton add = new JButton("Add");
+		add.setAlignmentX(Component.CENTER_ALIGNMENT);
+		add.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				add();
+				}
+			});
+
+		JButton search = new JButton("Search");
+		search.setAlignmentX(Component.CENTER_ALIGNMENT);
+		search.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				search();
+				}
+			});
+		
+		JLabel searchOptions = new JLabel("Search Options");
+		searchOptions.setAlignmentX(Component.CENTER_ALIGNMENT);
+		
+		//along the right side of the frame
+        Box right = new Box(BoxLayout.Y_AXIS);
+        right.add(add);
+        right.add(search);
+        right.add(searchOptions);
+        right.add(popFilter);
+        right.add(matchDegree);
+        right.setBackground(Color.gray);
+ 
+        return right;
+	}
+	
+	/**
+	 * Assembles the panel to appear across the top of the application, above the
+	 * JTable component. This includes the search JTextfields.
+	 * @return
+	 */
+	private Box buildTop(){
+		//sets up the elements in the top bar
+		JLabel met = new JLabel("Metropolis: ");
+		JLabel cont = new JLabel("Continent: ");
+		JLabel pop = new JLabel("Population: ");
+		
+		//across the top of the frame
+		Box top = new Box(BoxLayout.X_AXIS);
+		top.add(met);
+	    top.add(metSearch);	
+	    top.add(cont);
+	    top.add(contSearch);
+	    top.add(pop);
+	    top.add(popSearch);
+	    top.setBackground(Color.gray);
+		        
+		return top;
+	}
+	
+	/**
+	 * Calls down to the tableModel object to conduct a search of MySQL after
+	 * retrieving input data from the user via the GUI.
+	 */
+	private void search(){
+		String filter = (String)popFilter.getSelectedItem();;
+		String match = (String)matchDegree.getSelectedItem();
+		String metropolis = metSearch.getText();
+		String continent = contSearch.getText();
+		String population = popSearch.getText();
+		model.search(metropolis, continent, population, filter, match);
+	}
+	
+	/**
+	 * Given input data from the JTextfields, calls down to the tableModel
+	 * object to conduct a search of the MySQL database and then update the view.
+	 */
+	private void add(){
+		String metropolis = metSearch.getText();
+		String population =  popSearch.getText();
+		String continent = contSearch.getText();
+		model.add(metropolis, continent, population);
+	}
+	
+	/**
+	 * Sets the requisite look and feel of the application and initializes the frame.
+	 * @param args
+	 */
+	public static void main(String[] args){
+		try {
+			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+		} catch (Exception ignored) { }
+		
+		Frame dataDisplay = new Frame();
+	}
+
+	
+	/**
+	 * Required methods to use the WindowListener. Most do nothing, but two related
+	 * to closing the window call down to the tableModel and then to the dataModel
+	 * below to terminate the connection with MySQL when the application quits.
+	 */
+	@Override
+	public void windowActivated(WindowEvent arg0) {
+		//do nothing
+	}
+
+	@Override
+	public void windowClosed(WindowEvent arg0) {
+		model.disconnect();
+	}
+
+	@Override
+	public void windowClosing(WindowEvent arg0) {
+		model.disconnect();
+	}
+
+	@Override
+	public void windowDeactivated(WindowEvent arg0) {
+		//do nothing
+	}
+
+	@Override
+	public void windowDeiconified(WindowEvent arg0) {
+		//do nothing
+	}
+
+	@Override
+	public void windowIconified(WindowEvent arg0) {
+		//do nothing
+	}
+
+	@Override
+	public void windowOpened(WindowEvent arg0) {
+		//do nothing
+	}
+
+	@Override
+	public void tableChanged(TableModelEvent arg0) {
+		// TODO Auto-generated method stub
+		
+	}
+}
