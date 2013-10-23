@@ -1,0 +1,185 @@
+package assign3;
+
+import java.sql.*;
+import java.util.*;
+
+public class MetropolisDataModel {
+	
+	 static String account = MyDBInfo.MYSQL_USERNAME; 
+	 static String password = MyDBInfo.MYSQL_PASSWORD; 
+	 static String server = MyDBInfo.MYSQL_DATABASE_SERVER; 
+	 static String database = MyDBInfo.MYSQL_DATABASE_NAME; 
+	 static Statement stmt;
+	 static ResultSet rs;
+	 static Connection con;
+
+	/**
+	 * Constructor. Creates a connection with the MySQL database using the JDBC driver.
+	 * Left open until the window closes.
+	 */
+	 public MetropolisDataModel() {
+		 try{
+				Class.forName("com.mysql.jdbc.Driver");
+				
+				con = DriverManager.getConnection("jdbc:mysql://" + server, account, password);
+				
+				stmt = con.createStatement();
+				stmt.executeQuery("USE " + database);
+		 }catch(SQLException e){
+				e.printStackTrace();
+		 }catch(ClassNotFoundException e){
+				e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * Given the input search data passed down through the table model from the
+	 * GUI, constructs a single String to search in MySQL.
+	 * @param city
+	 * @param continent
+	 * @param population
+	 * @param popFilter
+	 * @param strictness
+	 * @return 
+	 */
+	public Map<Integer, ArrayList<String> > search(String city, String cont, String pop, String filter, String strict){
+		Map<Integer, ArrayList<String>> results = new HashMap<Integer, ArrayList<String>>();
+		
+		String search = "SELECT * FROM metropolises WHERE ";
+
+		//assembles a String to be searched by analyzing the input data
+		//from the various search fields and filters
+		if(city.length() != 0){
+			if(strict == "Exact"){
+				search += "metropolis = \"";
+				search = search + city;
+				search += "\"";
+			}
+			else {
+				search += "metropolis LIKE% \"";
+				search = search + city;
+				search += "\"";
+			}
+		}
+		if(cont.length() != 0){
+			if(city.length() != 0){
+				search += " AND ";
+			}
+			if(strict == "Exact"){
+				search += "continent = \"";
+				search = search + cont;
+				search += "\"";
+			}
+			else {
+				search += "continent LIKE% \"";
+				search = search + cont;
+				search += "\"";
+			}
+		}
+		if(pop.length() != 0){
+			if(city.length() != 0 || cont.length() != 0){
+				search += " AND ";
+			}
+			if(filter == "Larger"){
+				search += "population > ";
+				search = search + pop;
+			}
+			else{
+				search += "population <= ";
+				search = search + pop;
+			}
+		}
+		search += ";";
+		
+		//if all search fields are empty, return the full database
+		if(city.length()==0 && cont.length()==0 && pop.length()==0) search = "SELECT * from metropolises;";
+		//makes the search
+		results = completeSearch(search);
+		return results;
+	}
+	
+	/**
+	 * Given data passed down through the table model from the GUI, adds the data
+	 * to the MySQL database.
+	 * @param city
+	 * @param cont
+	 * @param pop
+	 * @return
+	 */
+	public Map<Integer, ArrayList<String>> add(String city, String cont, String pop){
+		if(city.length() == 0 && cont.length() == 0 && pop.length() == 0) {
+			//DO SOMETHING
+		}
+		try{
+			stmt.executeUpdate("INSERT INTO metropolises VALUES ( \n \"" + city + "\",\"" + cont + "\"," + pop +");");
+		}catch(SQLException e){ e.printStackTrace();}
+		
+		return retrieveNew(city, cont, pop);
+	}
+	
+	/**
+	 * Called after new data has been added to the database, pulls it back out to
+	 * pass up to the GUI.
+	 * @param city
+	 * @param cont
+	 * @param pop
+	 * @return
+	 */
+	private Map<Integer, ArrayList<String> > retrieveNew(String city, String cont, String pop){
+		Map<Integer, ArrayList<String> > results = new HashMap<Integer, ArrayList<String> >();
+		try{
+			//retrieves the updated data after adding a new entry to the database
+			//(check that the add process went as planned)
+			rs = stmt.executeQuery("SELECT * FROM metropolises WHERE metropolis = \"" + city +
+					"\" AND continent = \"" + cont + "\" AND population = " + pop + ";");
+			int row = 0;
+			while(rs.next()){
+				ArrayList<String> curr = new ArrayList<String>();
+				curr.add(rs.getString("Metropolis"));
+				curr.add(rs.getString("Continent"));
+				curr.add(rs.getString("Population"));
+				results.put(row, curr);
+				row++;
+			}
+		}catch(SQLException e){e.printStackTrace();}
+		
+		return results;
+	}
+	
+
+	/**
+	 * Performs the actual MySQL database search with the query String built above.
+	 * @return
+	 */
+	private Map<Integer, ArrayList<String> > completeSearch(String search){
+		Map<Integer, ArrayList<String> > results = new HashMap<Integer, ArrayList<String>>();
+			//actual method to perform the search
+			try{
+				rs = stmt.executeQuery(search);
+				int row = 0;
+				while(rs.next()){
+					ArrayList<String> curr = new ArrayList<String>();
+					curr.add(rs.getString("Metropolis"));
+					curr.add(rs.getString("Continent"));
+					curr.add(rs.getString("Population"));
+					results.put(row, curr);
+					row++;
+				}
+			}catch(SQLException e){e.printStackTrace();}
+		
+		return results;
+	}
+	
+	//when the window is closed, disconnects from MySQL
+	public void disconnect(){
+		try {
+			con.close();
+		}catch(SQLException e){
+			e.printStackTrace();
+		}
+	}
+	
+	public static void main(String[] args){
+	}
+
+}
